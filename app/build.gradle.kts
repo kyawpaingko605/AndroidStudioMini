@@ -40,7 +40,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"  // Kotlin 1.9.25 အတွက်
+        kotlinCompilerExtensionVersion = "1.5.14"  // ← 1.5.15 မှ 1.5.14 ပြောင်းပါ
     }
     packaging {
         resources {
@@ -57,19 +57,19 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2023.10.00"))  // ← 2024.02.00 မှ 2023.10.00 ပြောင်းပါ
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3:1.1.1")  // ← 1.2.0 မှ 1.1.1 ပြောင်းပါ
+    implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material:material")
 
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.4")  // ← 2.7.7 မှ 2.7.4 ပြောင်းပါ
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Sora-Editor
+    // Sora-Editor 0.24.4
     implementation("io.github.rosemoe:editor:0.24.4")
     implementation("io.github.rosemoe:language-textmate:0.24.4")
 
@@ -87,7 +87,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.00"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
     // Debug
