@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android") version "2.0.0"  // ← Kotlin version ထည့်ပါ
+    id("org.jetbrains.kotlin.android")  // version မထည့်ပါနဲ့ (settings မှာ သတ်မှတ်ပြီးသား)
 }
 
 android {
@@ -39,9 +39,8 @@ android {
     buildFeatures {
         compose = true
     }
-    // Kotlin 2.0.0 နှင့် ကိုက်ညီစေရန် composeOptions ကို update လုပ်ပါ
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"  // ← 2.0.0 နဲ့ ကိုက်ညီတဲ့ version
+        kotlinCompilerExtensionVersion = "1.5.14"  // Kotlin 2.0.0 အတွက်
     }
     packaging {
         resources {
@@ -58,7 +57,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2024.02.00"))  // ← BOM update
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -70,7 +69,7 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Code Editor - Sora-Editor
+    // Sora-Editor
     implementation("io.github.rosemoe:editor:0.24.4")
     implementation("io.github.rosemoe:language-textmate:0.24.4")
 
