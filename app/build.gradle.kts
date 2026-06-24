@@ -69,9 +69,9 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Sora-Editor - Kotlin 1.9 နဲ့ ကိုက်ညီတဲ့ version
-    implementation("io.github.rosemoe:editor:0.23.0")           // ← 0.24.4 မှ 0.23.0 ပြောင်းပါ
-    implementation("io.github.rosemoe:language-textmate:0.23.0") // ← 0.24.4 မှ 0.23.0 ပြောင်းပါ
+    // Sora-Editor - 0.24.4
+    implementation("io.github.rosemoe:editor:0.24.4")
+    implementation("io.github.rosemoe:language-textmate:0.24.4")
 
     // File operations
     implementation("androidx.documentfile:documentfile:1.0.1")
