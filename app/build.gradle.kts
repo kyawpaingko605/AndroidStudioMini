@@ -40,7 +40,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"  // ← 1.5.15 မှ 1.5.14 ပြောင်းပါ
+        kotlinCompilerExtensionVersion = "1.5.14"  // ← ဒီနေရာကို 1.5.14 ပြောင်းပါ
     }
     packaging {
         resources {
@@ -69,7 +69,7 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Sora-Editor 0.24.4
+    // Sora-Editor
     implementation("io.github.rosemoe:editor:0.24.4")
     implementation("io.github.rosemoe:language-textmate:0.24.4")
 
