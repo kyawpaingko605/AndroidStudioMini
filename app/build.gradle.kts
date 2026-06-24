@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")  // version မထည့်ပါနဲ့ (settings မှာ သတ်မှတ်ပြီးသား)
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -40,7 +40,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"  // Kotlin 2.0.0 အတွက်
+        kotlinCompilerExtensionVersion = "1.5.15"  // ← ဒီနေရာကိုပြောင်းပါ
     }
     packaging {
         resources {
