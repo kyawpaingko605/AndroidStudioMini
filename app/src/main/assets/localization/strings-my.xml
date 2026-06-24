@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Android Studio Mini</string>
+    <string name="hello_world">ပြည့်စုံသည့် ကမ္ဘာ!</string>
+    <string name="button_ok">အိုကေ</string>
+    <string name="button_cancel">ပယ်ဖျက်ခြင်း</string>
+    <string name="button_save">သိမ်းဆည်းခြင်း</string>
+    <string name="button_delete">ဖျက်ခြင်း</string>
+    <string name="menu_settings">ဆက်တင်များ</string>
+    <string name="menu_help">အကူအညီ</string>
+    <string name="error_message">အမှားအယွင်း ကျေးဇူးပြု၍ ပြန်ကြိုးစားပါ</string>
+    <string name="success_message">အောင်မြင်ပါပြီ</string>
+    <string name="new_project">နစ်ပ Project</string>
+    <string name="open_project">Project ဖွင့်ခြင်း</string>
+    <string name="build">ဖန်တီးခြင်း</string>
+    <string name="run">ဆောင်ရွက်ခြင်း</string>
+    <string name="test">စမ်းသပ်ခြင်း</string>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Android Studio Mini</string>
+    <string name="main_editor">Code Editor</string>
+    <string name="project_explorer">Project</string>
+    <string name="build_output">Build</string>
+    <string name="logcat">Logcat</string>
+    <string name="settings">Settings</string>
+    <string name="new_project">New Project</string>
+    <string name="open_project">Open Project</string>
+    <string name="save">Save</string>
+    <string name="run">Run</string>
+    <string name="build">Build</string>
+    <string name="undo">Undo</string>
+    <string name="redo">Redo</string>
+</resources>

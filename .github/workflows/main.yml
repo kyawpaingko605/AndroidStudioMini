@@ -1,0 +1,253 @@
+name: Android Studio Mini CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  # -----------------------------------------------------------------
+  # JOB 1: Test & Lint (Unit Tests နှင့် Code Style စစ်ဆေးခြင်း)
+  # -----------------------------------------------------------------
+  test-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+          
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      - name: Run unit tests
+        run: ./gradlew test
+        
+      - name: Run lint checks
+        run: ./gradlew lint
+        
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test-Results
+          path: |
+            app/build/test-results/
+            app/build/reports/
+            
+      - name: Comment test results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            if (context.issue.number) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '✅ Tests and lint checks completed!\n\nCheck the artifacts for detailed reports.'
+              })
+            }
+
+  # -----------------------------------------------------------------
+  # JOB 2: Standard Gradle Build (ပုံမှန် တရားဝင် APK ထုတ်လုပ်ခြင်း)
+  # -----------------------------------------------------------------
+  standard-gradle-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+          
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v2
+        
+      - name: Install Android SDK components
+        run: |
+          sdkmanager --update
+          sdkmanager "platforms;android-34"
+          sdkmanager "build-tools;34.0.0"
+          
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      - name: Build APK (Debug)
+        run: ./gradlew assembleDebug
+        
+      - name: Build APK (Release)
+        run: ./gradlew assembleRelease
+          
+      - name: Upload Standard APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Standard-APK-Artifacts
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  # -----------------------------------------------------------------
+  # JOB 3: Custom Build Tools (On-Device CLI Tools ပုံစံအတုယူစမ်းသပ်ခြင်း)
+  # -----------------------------------------------------------------
+  custom-tools-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Environment Variables
+        run: |
+          echo "BUILD_TOOLS=$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_ENV
+          echo "ANDROID_JAR=$ANDROID_HOME/platforms/android-34/android.jar" >> $GITHUB_ENV
+
+      - name: Create Missing Placeholder Resources
+        run: |
+          echo "Creating placeholder resource files..."
+          mkdir -p app/src/main/res/xml
+          mkdir -p app/src/main/res/drawable
+          echo '<?xml version="1.0" encoding="utf-8"?><data-extraction-rules></data-extraction-rules>' > app/src/main/res/xml/data_extraction_rules.xml
+          echo '<?xml version="1.0" encoding="utf-8"?><full-backup-content></full-backup-content>' > app/src/main/res/xml/backup_rules.xml
+          echo '<?xml version="1.0" encoding="utf-8"?><vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#FF000000" android:pathData="M12,2L2,22H22L12,2Z"/></vector>' > app/src/main/res/drawable/ic_launcher.xml
+          
+      - name: Compile resources with aapt2
+        run: |
+          echo "Compiling resources..."
+          mkdir -p app/build/intermediates/compiled_res
+          $BUILD_TOOLS/aapt2 compile \
+            --dir app/src/main/res \
+            -o app/build/intermediates/compiled_res/resources.zip
+            
+      - name: Link resources with aapt2
+        run: |
+          echo "Linking resources..."
+          mkdir -p app/build/intermediates/linked_res
+          $BUILD_TOOLS/aapt2 link \
+            -I $ANDROID_JAR \
+            -o app/build/intermediates/linked_res/resources.apk \
+            --manifest app/src/main/AndroidManifest.xml \
+            --rename-manifest-package "com.kyawpaingko.androidstudiomini" \
+            -R app/build/intermediates/compiled_res/resources.zip \
+            --auto-add-overlay
+            
+      - name: Compile Java & Kotlin sources (Via Gradle Task to avoid Apt-get slowness)
+        run: |
+          echo "Compiling sources..."
+          chmod +x gradlew
+          ./gradlew compileDebugSources
+            
+      - name: Convert to DEX with d8
+        run: |
+          echo "Converting to DEX..."
+          mkdir -p app/build/intermediates/dex
+          $BUILD_TOOLS/d8 --lib $ANDROID_JAR \
+            --output=app/build/intermediates/dex \
+            --min-api=26 \
+            --intermediate \
+            $(find app/build/intermediates/javac/debug/classes -name "*.class" 2>/dev/null || find app/build/tmp/kotlin-classes/debug -name "*.class" 2>/dev/null)
+            
+      - name: Package APK
+        run: |
+          echo "Packaging APK..."
+          mkdir -p app/build/outputs/apk
+          cp app/build/intermediates/linked_res/resources.apk app/build/outputs/apk/app-unsigned.apk
+          cd app/build/outputs/apk
+          if [ -f ../../intermediates/dex/classes.dex ]; then
+            cp ../../intermediates/dex/classes.dex .
+            zip -q app-unsigned.apk classes.dex
+            rm classes.dex
+          fi
+          
+      - name: Create debug keystore
+        run: |
+          mkdir -p ~/.android
+          keytool -genkey -v -keystore ~/.android/debug.keystore -keyalg RSA -keysize 2048 -validity 10000 -alias debug -storepass android -keypass android -dname "CN=Android Studio Mini, O=Development, C=MM"
+            
+      - name: Sign APK with apksigner
+        run: |
+          echo "Signing APK..."
+          $BUILD_TOOLS/apksigner sign --ks ~/.android/debug.keystore --ks-pass pass:android --ks-key-alias debug --key-pass pass:android --out app/build/outputs/apk/app-signed.apk app/build/outputs/apk/app-unsigned.apk
+            
+      - name: Align APK with zipalign
+        run: |
+          echo "Aligning APK..."
+          $BUILD_TOOLS/zipalign -v 4 app/build/outputs/apk/app-signed.apk app/build/outputs/apk/AndroidStudioMini-debug.apk
+            
+      - name: Verify APK
+        run: |
+          echo "Verifying APK..."
+          if [ -f app/build/outputs/apk/AndroidStudioMini-debug.apk ]; then
+            ls -lh app/build/outputs/apk/AndroidStudioMini-debug.apk
+            echo "✓ Custom APK build successful!"
+          else
+            echo "✗ Custom APK build failed!"
+            exit 1
+          fi
+          
+      - name: Upload Custom APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Custom-AndroidStudioMini-APK
+          path: app/build/outputs/apk/AndroidStudioMini-debug.apk
+          retention-days: 30
+          
+      - name: Generate build report
+        run: |
+          echo "# Build Report" > build-report.md
+          echo "" >> build-report.md
+          echo "**Build Date**: $(date)" >> build-report.md
+          echo "**APK Size**: $(ls -lh app/build/outputs/apk/AndroidStudioMini-debug.apk | awk '{print $5}')" >> build-report.md
+          echo "**Git Commit**: ${{ github.sha }}" >> build-report.md
+          echo "**Branch**: ${{ github.ref }}" >> build-report.md
+          
+      - name: Upload build report
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build-Report
+          path: build-report.md
+          
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: app/build/outputs/apk/AndroidStudioMini-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            if (context.issue.number) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '❌ Custom APK build failed! Check the workflow logs for details.'
+              })
+            }
