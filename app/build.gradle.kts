@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.android") version "2.0.0"  // ← Kotlin version ထည့်ပါ
 }
 
 android {
@@ -39,9 +39,9 @@ android {
     buildFeatures {
         compose = true
     }
-    // Kotlin 1.9.22 နှင့် ကိုက်ညီစေရန် ဗားရှင်း 1.5.8 ကို ပြန်လည်သတ်မှတ်ခြင်း ဖြစ်သည်
+    // Kotlin 2.0.0 နှင့် ကိုက်ညီစေရန် composeOptions ကို update လုပ်ပါ
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
+        kotlinCompilerExtensionVersion = "1.5.14"  // ← 2.0.0 နဲ့ ကိုက်ညီတဲ့ version
     }
     packaging {
         resources {
@@ -58,17 +58,17 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2023.10.00"))
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))  // ← BOM update
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3:1.1.1")
+    implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material:material")
 
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.4")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // Code Editor - Sora-Editor
     implementation("io.github.rosemoe:editor:0.24.4")
@@ -88,7 +88,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.00"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.02.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
     // Debug
