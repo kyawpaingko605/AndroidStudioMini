@@ -1,6 +1,6 @@
 pluginManagement {
     plugins {
-        id("org.jetbrains.kotlin.android") version "2.0.0"  // ← ဒီမှာ version ထည့်ပါ
+        id("org.jetbrains.kotlin.android") version "2.0.0"
     }
     repositories {
         google()
