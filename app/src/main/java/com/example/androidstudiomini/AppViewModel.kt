@@ -8,6 +8,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// Project နှင့် ProjectFile ဒေတာပုံစံများကို တိုက်ရိုက် ညွှန်းဆိုပေးခြင်း
+import com.example.androidstudiomini.Project
+import com.example.androidstudiomini.ProjectFile
+
 /**
  * App State data class
  */
