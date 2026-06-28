@@ -1,9 +1,8 @@
 package com.example.androidstudiomini
 
 import android.content.Context
-import android.net.Uri
-import androidx.documentfile.provider.DocumentFile
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 /**
@@ -25,7 +24,7 @@ data class Project(
 data class ProjectFile(
     val name: String,
     val path: String,
-    val content: String = "",
+    var content: String = "",
     val isDirectory: Boolean = false,
     val children: MutableList<ProjectFile> = mutableListOf()
 )
@@ -45,7 +44,7 @@ class ProjectManager(private val context: Context) {
     }
 
     /**
-     * Create a new project
+     * Create a new project using assets template
      */
     fun createProject(
         projectName: String,
@@ -59,9 +58,13 @@ class ProjectManager(private val context: Context) {
             throw IOException("Project already exists")
         }
 
-        // Create project structure
         projectPath.mkdirs()
-        createProjectStructure(projectPath, projectName, packageName)
+        
+        // ၁။ Assets template ထဲက ဖိုင်တွေကို ပထမဆုံး copy ကူးထည့်မယ်
+        copyTemplateFromAssets(projectPath)
+        
+        // ၂။ ကူးပြီးသားဖိုင်တွေထဲက Dynamic package name တွေနဲ့ Project name တွေကို လိုက်ပြင်မယ်
+        setupProjectPlaceholders(projectPath, projectName, packageName)
 
         val project = Project(
             name = projectName,
@@ -72,140 +75,87 @@ class ProjectManager(private val context: Context) {
         )
 
         currentProject = project
+        loadProjectFiles(project) // ဖိုင်စာရင်းကိုပါ တစ်ခါတည်း အလိုအလျောက် load ပေးခြင်း
         return project
     }
 
     /**
-     * Create standard Android project structure
+     * Assets ထဲက template folder ကို project folder ထဲ ကူးထည့်ခြင်း
      */
-    private fun createProjectStructure(projectPath: File, projectName: String, packageName: String) {
-        // Create directories
-        val srcDir = File(projectPath, "app/src/main")
-        val javaDir = File(srcDir, "java/${packageName.replace(".", "/")}")
-        val resDir = File(srcDir, "res")
-        val layoutDir = File(resDir, "layout")
-        val valuesDir = File(resDir, "values")
-        val drawableDir = File(resDir, "drawable")
+    private fun copyTemplateFromAssets(targetDir: File) {
+        copyAssetFolder("templates/empty-project", targetDir.absolutePath)
+    }
 
-        javaDir.mkdirs()
-        layoutDir.mkdirs()
-        valuesDir.mkdirs()
-        drawableDir.mkdirs()
+    private fun copyAssetFolder(assetDirPath: String, targetDirPath: String) {
+        val assetManager = context.assets
+        val assets = assetManager.list(assetDirPath) ?: return
 
-        // Create MainActivity.kt
-        val mainActivityContent = """
-            package $packageName
-
-            import android.os.Bundle
-            import androidx.activity.ComponentActivity
-            import androidx.activity.compose.setContent
-            import androidx.compose.foundation.layout.fillMaxSize
-            import androidx.compose.material3.MaterialTheme
-            import androidx.compose.material3.Surface
-            import androidx.compose.material3.Text
-            import androidx.compose.runtime.Composable
-            import androidx.compose.ui.Alignment
-            import androidx.compose.ui.Modifier
-
-            class MainActivity : ComponentActivity() {
-                override fun onCreate(savedInstanceState: Bundle?) {
-                    super.onCreate(savedInstanceState)
-                    setContent {
-                        MaterialTheme {
-                            Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.background
-                            ) {
-                                Greeting("$projectName")
-                            }
-                        }
+        if (assets.isEmpty()) {
+            // ဖိုင်ဖြစ်ပါက တိုက်ရိုက် copy ကူးမည်
+            try {
+                assetManager.open(assetDirPath).use { input ->
+                    FileOutputStream(File(targetDirPath)).use { output ->
+                        input.copyTo(output)
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
+        } else {
+            // ဖိုဒါဖြစ်ပါက ဖိုဒါအသစ်ဆောက်ပြီး ထပ်ဆင့်ပတ်မည် (Recursive)
+            val targetDir = File(targetDirPath)
+            if (!targetDir.exists()) targetDir.mkdirs()
 
-            @Composable
-            fun Greeting(name: String, modifier: Modifier = Modifier) {
-                Text(
-                    text = "Hello ${'$'}name!",
-                    modifier = modifier
-                )
+            for (asset in assets) {
+                copyAssetFolder("$assetDirPath/$asset", "$targetDirPath/$asset")
             }
-        """.trimIndent()
+        }
+    }
 
-        File(javaDir, "MainActivity.kt").writeText(mainActivityContent)
+    /**
+     * ကူးထားတဲ့ Template ဖိုင်တွေထဲက နေရာတွေကို User ပေးလိုက်တဲ့ packageName အတိုင်း လိုက်ပြင်ပေးခြင်း
+     */
+    private fun setupProjectPlaceholders(projectPath: File, projectName: String, packageName: String) {
+        // build.gradle.kts ပြင်ဆင်ခြင်း
+        val gradleFile = File(projectPath, "build.gradle.kts")
+        if (gradleFile.exists()) {
+            var content = gradleFile.readText()
+            content = content.replace("com.example.emptyproject", packageName)
+            gradleFile.writeText(content)
+        }
 
-        // Create AndroidManifest.xml
-        val manifestContent = """
-            <?xml version="1.0" encoding="utf-8"?>
-            <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-                <application
-                    android:allowBackup="true"
-                    android:label="@string/app_name"
-                    android:theme="@style/Theme.AppCompat">
-                    <activity
-                        android:name=".$packageName.MainActivity"
-                        android:exported="true">
-                        <intent-filter>
-                            <action android:name="android.intent.action.MAIN" />
-                            <category android:name="android.intent.category.LAUNCHER" />
-                        </intent-filter>
-                    </activity>
-                </application>
-            </manifest>
-        """.trimIndent()
+        // AndroidManifest.xml ပြင်ဆင်ခြင်း
+        val manifestFile = File(projectPath, "app/src/main/AndroidManifest.xml")
+        if (manifestFile.exists()) {
+            var content = manifestFile.readText()
+            content = content.replace("com.example.emptyproject", packageName)
+            manifestFile.writeText(content)
+        }
 
-        File(srcDir, "AndroidManifest.xml").writeText(manifestContent)
+        // strings.xml ပြင်ဆင်ခြင်း
+        val stringsFile = File(projectPath, "app/src/main/res/values/strings.xml")
+        if (stringsFile.exists()) {
+            var content = stringsFile.readText()
+            content = content.replace("Empty Project", projectName)
+            stringsFile.writeText(content)
+        }
 
-        // Create strings.xml
-        val stringsContent = """
-            <?xml version="1.0" encoding="utf-8"?>
-            <resources>
-                <string name="app_name">$projectName</string>
-            </resources>
-        """.trimIndent()
-
-        File(valuesDir, "strings.xml").writeText(stringsContent)
-
-        // Create build.gradle.kts
-        val buildGradleContent = """
-            plugins {
-                id("com.android.application")
-                id("org.jetbrains.kotlin.android")
-            }
-
-            android {
-                namespace = "$packageName"
-                compileSdk = 34
-
-                defaultConfig {
-                    applicationId = "$packageName"
-                    minSdk = 26
-                    targetSdk = 34
-                    versionCode = 1
-                    versionName = "1.0"
-                }
-
-                buildTypes {
-                    release {
-                        isMinifyEnabled = false
-                    }
-                }
-                
-                buildFeatures {
-                    compose = true
-                }
-            }
-
-            dependencies {
-                implementation("androidx.core:core-ktx:1.12.0")
-                implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-                implementation("androidx.activity:activity-compose:1.8.0")
-                implementation("androidx.compose.ui:ui:1.5.0")
-                implementation("androidx.compose.material3:material3:1.1.1")
-            }
-        """.trimIndent()
-
-        File(projectPath, "build.gradle.kts").writeText(buildGradleContent)
+        // MainActivity.kt ကို သက်ဆိုင်ရာ package folder အမှန်ထဲ ရွှေ့ပြီး ပြင်ဆင်ခြင်း
+        val oldActivityFile = File(projectPath, "app/src/main/java/MainActivity.kt")
+        if (oldActivityFile.exists()) {
+            var content = oldActivityFile.readText()
+            content = content.replace("package com.example.emptyproject", "package $packageName")
+            
+            // Package လမ်းကြောင်းအတိုင်း Folder အသစ်ဆောက်ပြီး အဲဒီထဲ ရွှေ့ထည့်ခြင်း
+            val newJavaDir = File(projectPath, "app/src/main/java/${packageName.replace(".", "/")}")
+            newJavaDir.mkdirs()
+            
+            val newActivityFile = File(newJavaDir, "MainActivity.kt")
+            newActivityFile.writeText(content)
+            
+            // အပြင်က ဖိုင်အဟောင်းကို ဖျက်ပစ်ခြင်း
+            oldActivityFile.delete()
+        }
     }
 
     /**
@@ -250,10 +200,10 @@ class ProjectManager(private val context: Context) {
      * Load all project files
      */
     private fun loadProjectFiles(project: Project) {
-        val srcDir = File(project.path, "app/src/main")
-        if (srcDir.exists()) {
+        val appDir = File(project.path)
+        if (appDir.exists()) {
             project.files.clear()
-            loadFilesRecursive(srcDir, project.files)
+            loadFilesRecursive(appDir, project.files)
         }
     }
 
@@ -282,7 +232,7 @@ class ProjectManager(private val context: Context) {
      * Check if file is editable
      */
     private fun isEditableFile(filename: String): Boolean {
-        val editableExtensions = listOf(".java", ".kt", ".xml", ".gradle", ".properties", ".json", ".md")
+        val editableExtensions = listOf(".java", ".kt", ".xml", ".gradle", ".kts", ".properties", ".json", ".md")
         return editableExtensions.any { filename.endsWith(it) }
     }
 
@@ -385,7 +335,6 @@ class ProjectManager(private val context: Context) {
      */
     fun exportProjectAsZip(projectPath: String, outputPath: String): Boolean {
         return try {
-            val projectDir = File(projectPath)
             // TODO: Implement ZIP export
             true
         } catch (e: Exception) {
